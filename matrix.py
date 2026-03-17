@@ -1,4 +1,5 @@
 from manim import *
+from fractions import Fraction
 
 class ConversionTable(Scene):
     def construct(self):
@@ -69,7 +70,6 @@ class MatrixMultiplication(MovingCameraScene):
         # Show matrices
         self.play(Create(key_matrix))
         self.play(Create(word_matrix))
-        self.wait(0.5)
         self.play(Create(equal_sign))
         self.play(Create(product_matrix))
         self.play(FadeIn(key_label), FadeIn(word_label))
@@ -91,7 +91,7 @@ class MatrixMultiplication(MovingCameraScene):
             )
 
             row_highlight = SurroundingRectangle(row_group, color=RED, buff=0.15)
-            self.play(Create(row_highlight))
+            self.play(Create(row_highlight), run_time=0.5)
 
             for j in range(word_cols):
 
@@ -101,7 +101,7 @@ class MatrixMultiplication(MovingCameraScene):
                 )
 
                 col_highlight = SurroundingRectangle(col_group, color=BLUE, buff=0.15)
-                self.play(Create(col_highlight))
+                self.play(Create(col_highlight), run_time=0.5)
 
                 # Compute dot product
                 cell_value = sum(
@@ -131,12 +131,12 @@ class MatrixMultiplication(MovingCameraScene):
                 multiplication.next_to(equal_sign, UP, buff=2)
 
                 self.play(FadeIn(multiplication))
-                self.wait(0.2)
+                self.wait(0.15)
 
                 # Fill product cell
                 new_text = Text(str(cell_value), font_size=28).move_to(cell.get_center())
 
-                self.play(FadeIn(new_text))
+                self.play(FadeIn(new_text), run_time=0.5)
 
                 self.play(FadeOut(multiplication), run_time=0.1)
                 self.play(FadeOut(col_highlight), run_time=0.5)
@@ -156,5 +156,182 @@ class MatrixMultiplication(MovingCameraScene):
             self.camera.frame.animate
             .move_to(product_matrix)
             .set(width=product_matrix.width * 1.5),
+            run_time=2
+        )
+
+class InverseMatrixMultiplication(MovingCameraScene):
+    def construct(self):
+        def tex_number(x):
+            if isinstance(x, Fraction):
+                if x.denominator == 1:
+                    return str(x.numerator)
+                return rf"\frac{{{x.numerator}}}{{{x.denominator}}}"
+            return str(x)
+
+        key_inverse = [
+            [Fraction(-5,114), Fraction(109,228), Fraction(-7,114)],
+            [Fraction(11,57), Fraction(-103,114), Fraction(4,57)],
+            [Fraction(-17,114), Fraction(77,114), Fraction(-1,114)]
+        ]
+
+        message = [
+            [404, 256, 483, 254],
+            [116, 64, 144, 76],
+            [582, 234, 711, 280]
+        ]
+
+        key_inverse_matrix = Matrix(
+            key_inverse,
+            v_buff=1.5,
+            element_to_mobject=lambda x: MathTex(tex_number(x)).scale(0.8)
+        ).scale(0.8)
+
+        encrypted_message_matrix = Matrix(message).scale(0.8)
+
+        key_inverse_matrix.next_to(encrypted_message_matrix, LEFT, buff=0.5)
+
+        equal_sign = MathTex("=")
+
+        product_matrix = Matrix(
+            [[0 for _ in range(4)] for _ in range(3)],
+            element_to_mobject=lambda x: MathTex(str(x))
+        ).scale(0.8)
+
+        product_matrix.get_entries().set_color(BLACK)
+
+        equal_sign.next_to(encrypted_message_matrix, RIGHT, buff=0.5)
+        product_matrix.next_to(equal_sign, RIGHT, buff=0.5)
+
+        key_label = Text("Key Inverse Matrix", font_size=24)
+        encrypted_message_label = Text("Encrypted Message Matrix", font_size=24)
+
+        group = VGroup(
+            key_inverse_matrix,
+            encrypted_message_matrix,
+            equal_sign,
+            product_matrix
+        )
+
+        group.move_to(ORIGIN)
+
+        key_label.next_to(key_inverse_matrix, DOWN)
+        encrypted_message_label.next_to(encrypted_message_matrix, DOWN)
+
+        self.play(Create(key_inverse_matrix))
+        self.play(Create(encrypted_message_matrix))
+        self.play(Create(equal_sign))
+        self.play(Create(product_matrix))
+        self.play(FadeIn(key_label), FadeIn(encrypted_message_label))
+
+        rows = len(key_inverse)
+        key_cols = len(key_inverse[0])
+        word_cols = len(message[0])
+
+        key_entries = key_inverse_matrix.get_entries()
+        word_entries = encrypted_message_matrix.get_entries()
+        product_entries = product_matrix.get_entries()
+
+        for i in range(rows):
+            row_group = VGroup(
+                *[key_entries[i * key_cols + j] for j in range(key_cols)]
+            )
+
+            row_highlight = SurroundingRectangle(
+                row_group,
+                color=RED,
+                buff=0.15
+            )
+
+            self.play(Create(row_highlight), run_time=0.5)
+
+            for j in range(word_cols):
+                col_group = VGroup(
+                    *[word_entries[k * word_cols + j] for k in range(rows)]
+                )
+
+                col_highlight = SurroundingRectangle(
+                    col_group,
+                    color=BLUE,
+                    buff=0.15
+                )
+
+                self.play(Create(col_highlight), run_time=0.5)
+
+                cell_value = sum(
+                    key_inverse[i][k] * message[k][j]
+                    for k in range(key_cols)
+                )
+
+                cell = product_entries[i * word_cols + j]
+
+                multiplication = MathTex(
+                    tex_number(key_inverse[i][0]), r"\cdot", str(message[0][j]), "+",
+                    tex_number(key_inverse[i][1]), r"\cdot", str(message[1][j]), "+",
+                    tex_number(key_inverse[i][2]), r"\cdot", str(message[2][j])
+                ).scale(0.8)
+
+                multiplication[0].set_color(RED)
+                multiplication[4].set_color(RED)
+                multiplication[8].set_color(RED)
+
+                multiplication[2].set_color(BLUE)
+                multiplication[6].set_color(BLUE)
+                multiplication[10].set_color(BLUE)
+
+                multiplication.next_to(equal_sign, UP, buff=2)
+
+                self.play(FadeIn(multiplication))
+                self.wait(0.15)
+
+                result_tex = MathTex(tex_number(cell_value)).move_to(
+                    cell.get_center()
+                )
+
+                self.play(FadeIn(result_tex), run_time=0.5)
+
+                self.play(FadeOut(multiplication), run_time=0.1)
+                self.play(FadeOut(col_highlight), run_time=0.5)
+
+            self.play(FadeOut(row_highlight), run_time=0.5)
+
+        self.play(
+            FadeOut(key_label),
+            FadeOut(encrypted_message_label),
+            FadeOut(equal_sign),
+            FadeOut(key_inverse_matrix),
+            FadeOut(encrypted_message_matrix)
+        )
+
+        self.play(
+            self.camera.frame.animate
+            .move_to(product_matrix)
+            .set(width=product_matrix.width * 2),
+            run_time=2
+        )
+
+        # Column-wise indices
+        ordered_indices = []
+        for j in range(word_cols):
+            for i in range(rows):
+                ordered_indices.append((i,j))  # store (row,col) instead of flat index
+
+        # Create final entries with actual values
+        final_values = [
+            MathTex(tex_number(sum(key_inverse[i][k] * message[k][j] for k in range(key_cols)))).set_color(WHITE)
+            for (i,j) in ordered_indices
+        ]
+
+        # Arrange as a single horizontal string (scale down if needed)
+        final_group = VGroup(*final_values).arrange(RIGHT, buff=0.4).scale(0.7)
+        final_group.next_to(product_matrix, DOWN, buff=0.7)
+
+        decrypted_label = Text("Decrypted Message:", font_size=24, color=WHITE)
+        decrypted_label.next_to(final_group, UP, buff=0.2)
+
+        # Animate
+        self.play(
+            *[TransformFromCopy(product_entries[i * word_cols + j], final_values[k])
+            for k,(i,j) in enumerate(ordered_indices)],
+            FadeIn(decrypted_label),
             run_time=2
         )

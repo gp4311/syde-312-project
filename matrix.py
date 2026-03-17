@@ -28,6 +28,13 @@ class ConversionTable(Scene):
 
 class MatrixMultiplication(MovingCameraScene):
     def construct(self):
+        def tex_number(x):
+            if isinstance(x, Fraction):
+                if x.denominator == 1:
+                    return str(x.numerator)
+                return rf"\frac{{{x.numerator}}}{{{x.denominator}}}"
+            return str(x)
+
         key_data = [
             [18, 17, 10],
             [4, 4, 4],
@@ -155,7 +162,34 @@ class MatrixMultiplication(MovingCameraScene):
         self.play(
             self.camera.frame.animate
             .move_to(product_matrix)
-            .set(width=product_matrix.width * 1.5),
+            .set(width=product_matrix.width * 2),
+            run_time=2
+        )
+        
+        # Column-wise indices
+        ordered_indices = []
+        for j in range(word_cols):
+            for i in range(rows):
+                ordered_indices.append((i,j))  # store (row,col) instead of flat index
+
+        # Create final entries with actual values
+        final_values = [
+            MathTex(tex_number(sum(key_data[i][k] * word_data[k][j] for k in range(key_cols)))).set_color(WHITE)
+            for (i,j) in ordered_indices
+        ]
+
+        # Arrange as a single horizontal string (scale down if needed)
+        final_group = VGroup(*final_values).arrange(RIGHT, buff=0.4).scale(0.4)
+        final_group.next_to(product_matrix, DOWN, buff=0.7)
+
+        encrypted_label = Text("Encrypted Message:", font_size=24, color=WHITE)
+        encrypted_label.next_to(final_group, UP, buff=0.2)
+
+        # Animate
+        self.play(
+            *[TransformFromCopy(product_entries[i * word_cols + j], final_values[k])
+            for k,(i,j) in enumerate(ordered_indices)],
+            FadeIn(encrypted_label),
             run_time=2
         )
 
